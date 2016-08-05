@@ -93,5 +93,25 @@ class problem(object):
         # fin
         surface.write_to_png(fh.buffer)
 
-import sys
-problem.input_from(sys.stdin).output_to(sys.stdout)
+if __name__ == '__main__':
+    import sys
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('command', choice=[ 'problem', 'solution' ])
+    parser.add_argument('input', nargs='?')
+    parser.add_argument('output', nargs='?')
+    args = parser.parse_args()
+
+    if args.input:
+        inf = open(args.input)
+    else:
+        inf = sys.stdin
+    if args.output:
+        outf = open(args.output)
+    else:
+        outf = sys.stdout
+    if args.command == 'problem':
+        cls = problem
+    elif args.command == 'solution':
+        cls = solution
+    cls.input_from(inf).output_to(outf)
