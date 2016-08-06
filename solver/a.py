@@ -54,12 +54,12 @@ class solution(object):
     def output_to(self, fh):
         print(len(self.sources), file=fh)
         for x, y in self.sources:
-            print(x, y, file=fh)
+            print(x, y, sep=',', file=fh)
         print(len(self.facets), file=fh)
         for facet in self.facets:
             print(len(facet), *facet, file=fh)
         for x, y in self.destinations:
-            print(x, y, file=fh)
+            print(x, y, sep=',', file=fh)
 
 import sys
 p = problem.input_from(sys.stdin)

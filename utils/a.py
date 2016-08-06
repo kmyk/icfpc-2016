@@ -9,14 +9,14 @@ API_KEY = '162-d4d99873c440d0e294a5e11e4f731df8'
 def api_without_cache(query, params=None, json=False):
     logging.info('api: %s %s', query, params)
     time.sleep(1.1)
-    command = [ 'curl', '--compressed', '-L', '-H', 'Expect:', '-H', 'X-API-Key: ' + API_KEY, 'http://2016sv.icfpcontest.org/api/' + query ]
+    command = [ 'curl', '-s', '--compressed', '-L', '-H', 'Expect:', '-H', 'X-API-Key: ' + API_KEY, 'http://2016sv.icfpcontest.org/api/' + query ]
     if params:
         for key, val in params.items():
             command += [ '--form-string', key + '=' + val ]
     p = subprocess.run(command, stdout=subprocess.PIPE)
     p.check_returncode()
     if json:
-        return json.loads(p.stdout.decode())
+        return globals()['json'].loads(p.stdout.decode())
     else:
         return p.stdout
 
@@ -73,7 +73,12 @@ def get_latest_snapshot():
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=[ 'update', 'snapshot' ])
+    subparsers = parser.add_subparsers(dest='command')
+    subparser = subparsers.add_parser('update')
+    subparser = subparsers.add_parser('snapshot')
+    subparser = subparsers.add_parser('solve')
+    subparser.add_argument('solver')
+    subparser.add_argument('problem', nargs='*', type=int)
     args = parser.parse_args()
 
     if args.command == 'update':
@@ -84,6 +89,23 @@ if __name__ == '__main__':
     elif args.command == 'snapshot':
         snapshot = get_latest_snapshot()
         print(json.dumps(snapshot))
+
+    elif args.command == 'solve':
+        snapshot = get_latest_snapshot()
+        problems = snapshot['problems']
+        if args.problem:
+            problems = [ x for x in problems if x['problem_id'] in args.problem ]
+        for problem in problems:
+            logging.info('problem: %d', problem['problem_id'])
+            p = subprocess.Popen(args.solver, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            problem_spec = api(blob(problem['problem_spec_hash']))
+            logging.info('problem_spec: %s', problem_spec)
+            solution_spec = p.communicate(problem_spec)[0]
+            logging.info('solution_spec: %s', solution_spec)
+            params = { 'problem_id': str(problem['problem_id']), 'solution_spec': solution_spec.decode() }
+            resp = api_without_cache(solution_submit, params, json=True)
+            logging.info('reuslt: %s', json.dumps(resp))
+            assert resp['ok']
 
     else:
         assert False
