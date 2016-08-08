@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
+API_KEY = '162-d4d99873c440d0e294a5e11e4f731df8'
+USER = 162
+
 import logging
 logging.basicConfig(level=logging.INFO)
 
 import subprocess
 import time
 import json
-API_KEY = '162-d4d99873c440d0e294a5e11e4f731df8'
 def api_without_cache(query, params=None, json=False):
     logging.info('api: %s %s', query, params)
     time.sleep(1.1)
@@ -79,6 +81,7 @@ if __name__ == '__main__':
     subparser = subparsers.add_parser('solve')
     subparser.add_argument('solver')
     subparser.add_argument('problem', nargs='*', type=int)
+    subparser.add_argument('-t', '--time', type=int)
     args = parser.parse_args()
 
     if args.command == 'update':
@@ -95,8 +98,14 @@ if __name__ == '__main__':
         problems = snapshot['problems']
         if args.problem:
             problems = [ x for x in problems if x['problem_id'] in args.problem ]
+        problems.sort(key=lambda x: x['publish_time'])
         for problem in problems:
-            logging.info('problem: %d', problem['problem_id'])
+            logging.info('problem_id: %d', problem['problem_id'])
+            logging.info('problem: %s', problem)
+            if int(problem['owner']) == USER:
+                continue
+            if args.time and problem['publish_time'] < args.time:
+                continue
             p = subprocess.Popen(args.solver, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             problem_spec = api(blob(problem['problem_spec_hash']))
             logging.info('problem_spec: %s', problem_spec)
